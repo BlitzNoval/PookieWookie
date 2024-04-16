@@ -35,6 +35,9 @@ public class PlayerController : MonoBehaviour
         cameraRotation.x -= mouseY * lookSpeed;
         playerCamera.transform.localEulerAngles = cameraRotation;
 
+        // Always display reticle
+        reticle.SetActive(true);
+
         // Raycast from the center of the screen
         Ray ray = playerCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
 
@@ -48,9 +51,6 @@ public class PlayerController : MonoBehaviour
         {
             if (hit.collider.CompareTag("Target"))
             {
-                // Display reticle at hit point
-                reticle.SetActive(true);
-
                 // Check for mouse click to destroy the target
                 if (Input.GetMouseButtonDown(0)) // 0 for left mouse button
                 {
@@ -60,19 +60,8 @@ public class PlayerController : MonoBehaviour
                     {
                         target.OnHit(); // Trigger destruction logic in Target script
                     }
-
-                    // Hide reticle after interaction
-                    reticle.SetActive(false);
                 }
             }
-            else
-            {
-                reticle.SetActive(false); // Hide reticle if not looking at a target
-            }
-        }
-        else
-        {
-            reticle.SetActive(false); // Hide reticle if not hitting anything
         }
     }
 }
