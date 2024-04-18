@@ -72,4 +72,9 @@ public class TargetSpawner : MonoBehaviour
         }
     }
 
+    // Method to set target lifetime based on game mode
+    public void SetTargetLifetime(float lifetime)
+    {
+        targetLifetime = lifetime;
+    }
 }
