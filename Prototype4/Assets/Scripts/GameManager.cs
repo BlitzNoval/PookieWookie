@@ -74,7 +74,7 @@ public class GameManager : MonoBehaviour
         ResetGameState();
         isHardcoreMode = true;
         timer = 30f;
-        TargetSpawner.Instance.SetTargetLifetime(1.5f);
+        TargetSpawner.Instance.SetTargetLifetime(0.3f);
         StartGame();
     }
 
@@ -141,6 +141,15 @@ public class GameManager : MonoBehaviour
         averageReactionTimeText.text = "Average Reaction Time: 0 seconds";
     }
 
+public void ResumeGame()
+{
+    TogglePause();
+
+    if (!isPaused && playerController != null)
+    {
+        playerController.ResetCameraToStartPoint();
+    }
+}
     void ManageCursor(bool visible)
     {
         Cursor.visible = visible;
