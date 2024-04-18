@@ -1,67 +1,121 @@
+using System.Collections;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    public float moveSpeed = 5f;
     public float lookSpeed = 2f;
-    public float maxInteractDistance = 10f;
-    public GameObject reticle; // Reference to the reticle GameObject
-
+    public GameObject reticle;
+    public static float sensitivity = 0.4f;
     private Camera playerCamera;
+    public Transform startPoint;
+
+    public AudioClip[] hitSounds;
+    public AudioClip missSound;
+    public ParticleSystem hitEffectPrefab;
+    private AudioSource audioSource;
+    private static int consecutiveHits = 0;
+    private bool isPlayingFinalSound = false;
+    private float pitch = 0f;
 
     void Start()
     {
         playerCamera = GetComponentInChildren<Camera>();
-        Cursor.lockState = CursorLockMode.Locked; 
+        audioSource = GetComponent<AudioSource>();
+        if (startPoint != null)
+        {
+            playerCamera.transform.LookAt(startPoint.position);
+            pitch = playerCamera.transform.localEulerAngles.x;
+        }
+        reticle.SetActive(true);
     }
 
     void Update()
     {
-        // Movement input
-        float horizontal = Input.GetAxis("Horizontal");
-        float vertical = Input.GetAxis("Vertical");
-        Vector3 moveDirection = new Vector3(horizontal, 0f, vertical).normalized;
-        transform.Translate(moveDirection * moveSpeed * Time.deltaTime);
-
-        // Mouse look input
-        float mouseX = Input.GetAxis("Mouse X");
-        float mouseY = Input.GetAxis("Mouse Y");
-
-        Vector3 rotation = transform.localEulerAngles;
-        rotation.y += mouseX * lookSpeed;
-        transform.localEulerAngles = rotation;
-
-        Vector3 cameraRotation = playerCamera.transform.localEulerAngles;
-        cameraRotation.x -= mouseY * lookSpeed;
-        playerCamera.transform.localEulerAngles = cameraRotation;
-
-        // Always display reticle
-        reticle.SetActive(true);
-
-        // Raycast from the center of the screen
-        Ray ray = playerCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
-
-        // Draw debug ray
-        Debug.DrawRay(ray.origin, ray.direction * maxInteractDistance, Color.red);
-
-        RaycastHit hit;
-
-        // Check if the ray hits an interactable object within maxInteractDistance
-        if (Physics.Raycast(ray, out hit, maxInteractDistance))
+        if (GameManager.Instance.gameStarted)
         {
-            if (hit.collider.CompareTag("Target"))
+            float mouseX = Input.GetAxis("Mouse X") * sensitivity * lookSpeed;
+            float mouseY = Input.GetAxis("Mouse Y") * sensitivity * lookSpeed;
+
+            pitch -= mouseY;
+            pitch = Mathf.Clamp(pitch, -90f, 90f);
+
+            transform.Rotate(0f, mouseX, 0f);
+            playerCamera.transform.localEulerAngles = new Vector3(pitch, playerCamera.transform.localEulerAngles.y, 0f);
+
+            HandleShooting();
+        }
+    }
+
+    private void HandleShooting()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            RaycastHit hit;
+            Ray ray = playerCamera.ScreenPointToRay(Input.mousePosition);
+
+            if (Physics.Raycast(ray, out hit))
             {
-                // Check for mouse click to destroy the target
-                if (Input.GetMouseButtonDown(0)) // 0 for left mouse button
+                Target target = hit.transform.GetComponent<Target>();
+                if (target != null)
                 {
-                    // Retrieve the Target component and destroy the target
-                    Target target = hit.collider.GetComponent<Target>();
-                    if (target != null)
-                    {
-                        target.OnHit(); // Trigger destruction logic in Target script
+                    consecutiveHits++;
+                    if (!isPlayingFinalSound) {
+                        StartCoroutine(PlayHitSound());
                     }
+                    ShowHitEffect(hit.point);
+                    GameManager.Instance.RegisterShot();
+                    target.OnHit();
                 }
             }
+            else
+            {
+                ResetHits();
+                GameManager.Instance.RegisterShot();
+            }
+        }
+    }
+
+    private IEnumerator PlayHitSound()
+    {
+        int soundIndex = Mathf.Clamp(consecutiveHits - 1, 0, hitSounds.Length - 1);
+        audioSource.clip = hitSounds[soundIndex];
+        audioSource.Play();
+
+        yield return new WaitForSeconds(audioSource.clip.length);
+
+        if (consecutiveHits >= 5)
+        {
+            isPlayingFinalSound = true; 
+            audioSource.clip = hitSounds[4];
+            audioSource.Play();
+            yield return new WaitForSeconds(audioSource.clip.length);
+            isPlayingFinalSound = false;
+            consecutiveHits = 0;
+        }
+    }
+
+    private void ResetHits()
+    {
+        consecutiveHits = 0;
+        audioSource.clip = missSound;
+        audioSource.Play();
+    }
+
+    private void ShowHitEffect(Vector3 hitPosition)
+    {
+        Instantiate(hitEffectPrefab, hitPosition, Quaternion.identity);
+    }
+
+    public void ResetCameraToStartPoint()
+    {
+        if (startPoint != null)
+        {
+            playerCamera.transform.LookAt(startPoint.position);
+            pitch = playerCamera.transform.localEulerAngles.x;
+        }
+        else
+        {
+            Debug.LogError("StartPoint not set in PlayerController");
         }
     }
 }
