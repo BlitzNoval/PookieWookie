@@ -14,7 +14,7 @@ public class pp : MonoBehaviour
     public float lookSpeed = 2f;
     public float lookXLimit = 45f;
 
-    public Transform raycastStartPoint; // Assigned object to specify raycast start point
+    public Transform raycastStartPoint;
 
     Vector3 moveDirection = Vector3.zero;
     float rotationX = 0;
@@ -64,21 +64,17 @@ public class pp : MonoBehaviour
             playerCamera.transform.localRotation = Quaternion.Euler(rotationX, 0, 0);
             transform.rotation *= Quaternion.Euler(0, Input.GetAxis("Mouse X") * lookSpeed, 0);
 
-            // Calculate raycast direction based on player's camera forward direction
             Vector3 raycastDirection = playerCamera.transform.forward;
 
-            // Use raycast start point if assigned; otherwise, use camera position
             Vector3 raycastOrigin = (raycastStartPoint != null) ? raycastStartPoint.position : playerCamera.transform.position;
 
-            // Raycast to visualize the player's aim direction
             RaycastHit hit;
             if (Physics.Raycast(raycastOrigin, raycastDirection, out hit))
             {
-                Debug.DrawLine(raycastOrigin, hit.point, Color.red); // Draw red line to the point of hit
+                Debug.DrawLine(raycastOrigin, hit.point, Color.red);
             }
             else
             {
-                // If raycast doesn't hit anything, draw line along camera's forward direction
                 Debug.DrawRay(raycastOrigin, raycastDirection * 100f, Color.red);
             }
         }
